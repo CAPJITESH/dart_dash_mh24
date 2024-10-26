@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class HttpApiCalls {
   Future<String> getApiLink() async {
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
-    // String apiLink = prefs.getString("ip_address") ?? "";
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    //String apiLink = prefs.getString("ip_address") ?? "";
     return "http://10.1.210.255:5000";
   }
 
@@ -23,7 +23,6 @@ class HttpApiCalls {
       "eth": data['eth'],
       "tx_name": data['tx_name'],
       "date": data['date'],
-      "coin_name": "",
     });
 
     http.StreamedResponse response = await request.send();
@@ -212,7 +211,7 @@ class HttpApiCalls {
       "price": data['price'],
       "tx_name": data['tx_name'],
       "date": data['date'],
-      "coin_name": data['coin_name'],
+      'coin_name': data['coin_name']
     });
 
     http.StreamedResponse response = await request.send();
@@ -240,6 +239,74 @@ class HttpApiCalls {
       print("error in transaction");
       print(response.reasonPhrase);
       return {};
+    }
+  }
+
+  Future<Map<String, dynamic>> getPortfolioDetails(String address) async {
+    String apiUrl = await getApiLink();
+    var request = http.MultipartRequest('POST', Uri.parse('$apiUrl/analyze_investment'));
+    request.fields['address'] = address;
+
+    http.StreamedResponse response = await request.send();
+    var responsedata = await http.Response.fromStream(response);
+
+    if (response.statusCode == 200) {
+      print(responsedata.body);
+      print(json.decode(responsedata.body));
+
+      final response = json.decode(responsedata.body) as Map<String, dynamic>;
+      return response;
+    } else {
+      print("error in getting data");
+      return {};
+    }
+  }
+
+  Future<dynamic> getTopLosers() async {
+    try {
+      var response = await http.get(
+        Uri.parse(
+          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=price_change_percentage_24h_asc&per_page=10&page=1',
+        ),
+        headers: {
+          'accept': 'application/json',
+          'x-cg-demo-api-key': 'CG-eiZFMa9jMAv61gfBwLH1fNiW', // Replace with your actual API key
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body); // Decode response here
+      } else {
+        print('Request failed with status: ${response.statusCode}');
+        return [];
+      }
+    } catch (error) {
+      print('Error sending request: $error');
+      return [];
+    }
+  }
+
+  Future<dynamic> getTopGainers() async {
+    try {
+      var response = await http.get(
+        Uri.parse(
+          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=price_change_percentage_24h_desc&per_page=10&page=1',
+        ),
+        headers: {
+          'accept': 'application/json',
+          'x-cg-demo-api-key': 'CG-eiZFMa9jMAv61gfBwLH1fNiW',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Request failed with status: ${response.statusCode}');
+        return [];
+      }
+    } catch (error) {
+      print('Error sending request: $error');
+      return [];
     }
   }
 }
